@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import re
 from email.utils import parsedate
@@ -29,21 +29,56 @@ excl=False
 
 h=[]
 
-import ConfigParser
+import configparser
 configfilename = os.path.join(targetfolder, ".gitlocrc")
-config = ConfigParser.ConfigParser()
+config = configparser.ConfigParser()
 with open("gitlocrc") as f:
     config.readfp(f)
 config.read([configfilename, os.path.expanduser('~/.gitlocrc')])
 exclusion_regexes = config.get("exclude", "regexes").splitlines()
 
+
+def group_by_month(hee):
+	h2 = []
+	current_group = hee[0]
+	current_group = (current_group[0].replace(day=1, hour=0, minute=0, second=0, microsecond=0), *current_group[1:-1])
+
+	current_group_locs = 0
+	current_group_adds = 0
+	current_group_dels = 0
+
+	for i, heehee in enumerate(hee):
+		(d,locs,adds,dels,hsh,who,cmt) = heehee
+		current_group_locs = current_group[1] + locs
+		current_group_adds = current_group[2] + adds
+		current_group_dels = current_group[3] + dels
+
+		if i < len(hee) -1:
+			next_item = hee[i+1]
+			d_of_next_item = next_item[0].replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+			
+			if current_group[0] == d_of_next_item:
+				continue
+
+		h2.append((current_group[0], current_group_locs, current_group_adds, current_group_dels, "", "", ""))
+		if i < len(hee) -1:
+			current_group = (d_of_next_item, *next_item[1:-1])
+
+	return h2
+
+
 def pop():
+	global h
 	if adds is None:
 		return
 
 	pstr="%s %8u %5s %5s %7s %s \t%s"%(d,locs,'+'+str(adds),'-'+str(dels),hsh,who,cmt.strip())
-	if needsvg: stderr.write(pstr+'\n')
-	else: print(pstr)
+	if needsvg:
+		pass
+		# stderr.write(pstr+'\n')
+	else:
+		pass
+		# print(pstr)
 	h.append((d,locs,adds,dels,hsh,who,cmt))
 
 gitopts = ''
@@ -86,6 +121,8 @@ for x in popen(gitcmd):
 		locs-=1
 
 pop()
+
+h = group_by_month(h)
 
 def makesvg():
 	def quoteone(x):
@@ -150,4 +187,6 @@ def makesvg():
 
 	svg.write("""</svg>\n""")
 
-if needsvg: makesvg()
+if needsvg:
+	makesvg()
+
