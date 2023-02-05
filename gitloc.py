@@ -1,12 +1,12 @@
 from dataclasses import dataclass
 import re
-from datetime import datetime
+from pandas import to_datetime, Timestamp
 import subprocess
 
 
 @dataclass
 class Commit:
-    date: datetime
+    date: Timestamp
     adds: int
     deletes: int
 
@@ -17,7 +17,7 @@ def parse_commit(commit_str: str) -> Commit:
     deletes = 0
     for line in commit_str.splitlines():
         if line.startswith("Date"):
-            date = datetime.fromisoformat(line[8:])
+            date = to_datetime(line[8:], utc=True)
         if line.startswith("+") and not line.startswith("+++"):
             adds += 1
         if line.startswith("-") and not line.startswith("---"):
@@ -34,7 +34,7 @@ def get_commits(target_folder=""):
 
     git_log = subprocess.check_output(gitcmd, shell=True).decode()
 
-    commit_strs = re.split("commit [0-9a-z]{40}\n", git_log)
+    commit_strs = re.split("commit [0-9a-z]{40}\n", git_log)[1:]
 
     commits = []
 
